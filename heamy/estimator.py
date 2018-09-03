@@ -381,7 +381,7 @@ class Classifier(BaseEstimator):
         if `True` then validate/predict/stack/blend results will be cached."""
     problem = 'classification'
 
-    def __init__(self, dataset, estimator=None, parameters=None, name=None, use_cache=True, probability=True):
+    def __init__(self, dataset, estimator=None, parameters=None, name=None, use_cache=False, probability=True):
         super(Classifier, self).__init__(dataset=dataset, estimator=estimator, parameters=parameters, name=name,
                                          use_cache=use_cache)
         self.probability = probability

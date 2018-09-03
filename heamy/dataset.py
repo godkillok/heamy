@@ -10,7 +10,7 @@ from scipy.sparse import csr_matrix, csc_matrix
 from sklearn.model_selection import train_test_split, StratifiedKFold, KFold
 from .cache import Cache, numpy_buffer
 from .utils.main import idx, concat
-
+import scipy
 logger = logging.getLogger('heamy.dataset')
 
 
@@ -154,7 +154,7 @@ class Dataset(object):
 
     def _validate_data(self, data, only_numpy=False):
         if not only_numpy:
-            dtypes = (pd.Series, pd.DataFrame, np.ndarray)
+            dtypes = (pd.Series, pd.DataFrame, np.ndarray,scipy.sparse.csr.csr_matrix)
         else:
             dtypes = (np.ndarray,)
 
