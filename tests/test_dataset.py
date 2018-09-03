@@ -12,7 +12,7 @@ from heamy.utils import flush_cache
 
 np.random.seed(1000)
 
-# X_train = np.random.rand(100, 100)
+# X_train = np.random.rand(100, 100)1
 # X_test = np.random.rand(100, 100)
 # y_train = np.random.rand(100, 1)
 # y_test = np.random.rand(100, 1)
