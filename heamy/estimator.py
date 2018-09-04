@@ -17,9 +17,10 @@ from .utils.main import report_score
 REQUIRED_ARGS = set(['X_train', 'y_train', 'X_test', 'y_test'])
 logger = logging.getLogger('heamy.estimator')
 
-def tmp_method(input):
-    X_train, y_train, X_test, _estimator, probability, parameters, problem=input
-    print(problem)
+def multi_predict(input):
+    i, _name, X_train, y_train, X_test, _estimator, probability, parameters, problem=input
+    logger.info('Calculating %s\'s fold #%s' % (_name, i + 1))
+
     estimator = _estimator(**parameters)
     estimator.fit(X_train, y_train)
     if probability:
@@ -30,26 +31,17 @@ def tmp_method(input):
             result = np.zeros((res.shape[0], estimator.classes_.shape[0]))
             for r in range(result.shape[0]):
                 result[r, int(res[r])] = 1.0
-
-
     else:
         result = estimator.predict(X_test)
 
-    if problem == 'classification' and self.probability:
+    if problem == 'classification' and probability:
         # return second column for binary classification
         if len(result.shape) == 2 and result.shape[1] == 2:
             result = result[:, 1]
     return  result
 
-def multi_folder(tmp_input):
-    p = Pool(2)
 
-    scores_by_run = p.map(tmp_method, tmp_input)
 
-    return scores_by_run
-
-def gg(im):
-    return im*im
 
 class BaseEstimator(object):
     problem = None
@@ -311,38 +303,44 @@ class BaseEstimator(object):
 
         # tmp_method(X_train, y_train, X_test, _estimator, probability, parameters, problem)
         tmp_input=[]
-
+        test_index_list=[]
         for i, fold in enumerate(self.dataset.kfold(k, stratify=stratify, seed=seed, shuffle=shuffle)):
             X_train, y_train, X_test, y_test, train_index, test_index = fold
             _estimator=self._estimator
             probability=self.probability
             parameters=self.parameters
             problem=self.problem
-            tmp_input.append((X_train, y_train, X_test, _estimator, probability, parameters, problem))
-        mf=multi_folder(tmp_input)
+            _name=self._name
+            tmp_input.append((i,_name,X_train, y_train, X_test, _estimator, probability, parameters, problem))
+            test_index_list.append(test_index)
+        p = Pool(k)
+        scores_by_run = p.map(multi_predict, tmp_input)
+
         print('pass')
 
+        if full_test:
+            for pred_r,test_index in zip(scores_by_run,test_index_list):
+                prediction = reshape_1d(pred_r)
 
+                if train is None:
+                    train = np.zeros((self.dataset.X_train.shape[0], prediction.shape[1]))
 
+                train[test_index] = prediction
 
+        else:
+            for i, fold in enumerate(self.dataset.kfold(k, stratify=stratify, seed=seed, shuffle=shuffle)):
+                X_train, y_train, X_test, y_test, train_index, test_index = fold
 
-        for i, fold in enumerate(self.dataset.kfold(k, stratify=stratify, seed=seed, shuffle=shuffle)):
-            X_train, y_train, X_test, y_test, train_index, test_index = fold
-            logger.info('Calculating %s\'s fold #%s' % (self._name, i + 1))
-
-            if full_test:
-                prediction = reshape_1d(self._predict(X_train, y_train, X_test, y_test))
-            else:
                 xt_shape = X_test.shape[0]
                 x_t = concat(X_test, self.dataset.X_test)
                 prediction_concat = reshape_1d(self._predict(X_train, y_train, x_t))
                 prediction, prediction_test = tsplit(prediction_concat, xt_shape)
                 test.append(prediction_test)
 
-            if train is None:
-                train = np.zeros((self.dataset.X_train.shape[0], prediction.shape[1]))
+                if train is None:
+                    train = np.zeros((self.dataset.X_train.shape[0], prediction.shape[1]))
 
-            train[test_index] = prediction
+                train[test_index] = prediction
 
         if full_test:
             logger.info('Calculating %s\'s test data' % self._name)
