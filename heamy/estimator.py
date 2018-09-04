@@ -2,7 +2,7 @@
 import hashlib
 import inspect
 import logging
-
+from multiprocessing import Process,Pool,freeze_support
 # NOTE:
 # 'getargspec' will be deprecated in future
 from inspect import getargspec
@@ -17,6 +17,39 @@ from .utils.main import report_score
 REQUIRED_ARGS = set(['X_train', 'y_train', 'X_test', 'y_test'])
 logger = logging.getLogger('heamy.estimator')
 
+def tmp_method(input):
+    X_train, y_train, X_test, _estimator, probability, parameters, problem=input
+    print(problem)
+    estimator = _estimator(**parameters)
+    estimator.fit(X_train, y_train)
+    if probability:
+        try:
+            result = estimator.predict_proba(X_test)
+        except:
+            res = estimator.predict(X_test)
+            result = np.zeros((res.shape[0], estimator.classes_.shape[0]))
+            for r in range(result.shape[0]):
+                result[r, int(res[r])] = 1.0
+
+
+    else:
+        result = estimator.predict(X_test)
+
+    if problem == 'classification' and self.probability:
+        # return second column for binary classification
+        if len(result.shape) == 2 and result.shape[1] == 2:
+            result = result[:, 1]
+    return  result
+
+def multi_folder(tmp_input):
+    p = Pool(2)
+
+    scores_by_run = p.map(tmp_method, tmp_input)
+
+    return scores_by_run
+
+def gg(im):
+    return im*im
 
 class BaseEstimator(object):
     problem = None
@@ -107,7 +140,15 @@ class BaseEstimator(object):
             estimator = self._estimator(**self.parameters)
             estimator.fit(X_train, y_train)
             if self.probability:
-                result = estimator.predict_proba(X_test)
+                try:
+                    result = estimator.predict_proba(X_test)
+                except:
+                    res = estimator.predict(X_test)
+                    result=np.zeros((res.shape[0],estimator.classes_.shape[0]))
+                    for r in range(result.shape[0]):
+                        result[r,int(res[r])]=1.0
+
+
             else:
                 result = estimator.predict(X_test)
 
@@ -268,9 +309,27 @@ class BaseEstimator(object):
             elif not self.dataset.loaded:
                 self.dataset.load()
 
+        # tmp_method(X_train, y_train, X_test, _estimator, probability, parameters, problem)
+        tmp_input=[]
+
+        for i, fold in enumerate(self.dataset.kfold(k, stratify=stratify, seed=seed, shuffle=shuffle)):
+            X_train, y_train, X_test, y_test, train_index, test_index = fold
+            _estimator=self._estimator
+            probability=self.probability
+            parameters=self.parameters
+            problem=self.problem
+            tmp_input.append((X_train, y_train, X_test, _estimator, probability, parameters, problem))
+        mf=multi_folder(tmp_input)
+        print('pass')
+
+
+
+
+
         for i, fold in enumerate(self.dataset.kfold(k, stratify=stratify, seed=seed, shuffle=shuffle)):
             X_train, y_train, X_test, y_test, train_index, test_index = fold
             logger.info('Calculating %s\'s fold #%s' % (self._name, i + 1))
+
             if full_test:
                 prediction = reshape_1d(self._predict(X_train, y_train, X_test, y_test))
             else:

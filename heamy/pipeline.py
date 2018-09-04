@@ -8,7 +8,7 @@ from .dataset import Dataset
 from .estimator import Regressor, Classifier
 from .utils.main import report_score, generate_columns, group_models, feature_combiner
 from .utils.optimizer import Optimizer
-
+from multiprocessing import Process,Pool,freeze_support
 
 class ModelsPipeline(object):
     """Combines sequence of models."""

@@ -32,22 +32,31 @@ X_train, X_test, y_train, y_test =train_test_split(trn_term_doc, y, test_size=0.
 # X_train=X_train.toarray()
 # X_test=X_test.toarray()
 print(type(X_train))
-#创建数据集
+#创建数据集1
 dataset = Dataset(X_train,y_train,X_test,use_cache=False)
-
+class_use_cache=False
 #创建RF模型和LR模型
-model_nb = Classifier(dataset=dataset, estimator=MultinomialNB,name='nb',use_cache=False)
-model_lr = Classifier(dataset=dataset, estimator=LogisticRegression, parameters={'C':4, 'dual':True,'n_jobs':-1},name='lr',use_cache=False)
-model_svm = Classifier(dataset=dataset, estimator=svm.SVC, parameters={ 'probability':True},name='svm',use_cache=False)
-model_per = Classifier(dataset=dataset, estimator=Perceptron, parameters={ 'n_iter':50,'penalty':'l2','n_jobs':-1},name='Perceptron',use_cache=False)
+model_nb = Classifier(dataset=dataset, estimator=MultinomialNB,name='nb',use_cache=class_use_cache)
+model_lr = Classifier(dataset=dataset, estimator=LogisticRegression, parameters={'C':4, 'dual':True,'n_jobs':-1},name='lr',use_cache=class_use_cache)
+model_svm = Classifier(dataset=dataset, estimator=svm.SVC, parameters={ 'probability':True},name='svm',use_cache=class_use_cache)
+model_per = Classifier(dataset=dataset, estimator=Perceptron, parameters={ 'n_iter':50,'penalty':'l2','n_jobs':-1},name='Perceptron',use_cache=class_use_cache)
+model_svc = Classifier(dataset=dataset, estimator=svm.LinearSVC,name="LinearSVC",use_cache=class_use_cache)
+model_svc = Classifier(dataset=dataset, estimator=svm.LinearSVC,name="LinearSVC",use_cache=class_use_cache)
+
+
 # Stack两个模型mhg
-# Returns new dataset with out-of-fold prediction
-pipeline = ModelsPipeline(model_nb,model_lr)
+# Returns new dataset with out-of-fold predictionmodel_svc,
+pipeline = ModelsPipeline(model_nb)
 stack_ds = pipeline.stack(k=3,seed=111)
+print(stack_ds.X_train.shape)
 #第二层使用lr模型stack
-stacker = Classifier(dataset=stack_ds, estimator=LogisticRegression,use_cache=False,probability=False)
+stacker = Classifier(dataset=stack_ds, estimator=LogisticRegression, parameters={'C':4, 'dual':True,'n_jobs':-1},use_cache=False,probability=False)
 results = stacker.predict()
-print(results.shape)
+result_list=list(results)
+
+
+
+print(accuracy_score(y_test, results))
 # 使用10折交叉验证结果
 results10 = stacker.validate(k=3,scorer=accuracy_score)
 print(results10)
