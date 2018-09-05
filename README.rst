@@ -4,9 +4,9 @@ heamy
 
 
 A set of useful tools for competitive data science.
-
+==========
 this one has already support csr matirx and parallel to evaluate k folder and support estimator who has no probility predition method,for example svm.LinearSVC
-
+=========
 
 Links
 -----
